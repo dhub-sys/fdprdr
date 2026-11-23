@@ -9,7 +9,7 @@
   var T = Object.assign({
     prev: 'Previous page', next: 'Next page', first: 'First page', last: 'Last page',
     zoomIn: 'Zoom in', zoomOut: 'Zoom out', fullscreen: 'Full screen', exitFullscreen: 'Exit full screen',
-    download: 'Download PDF', print: 'Print', preparingPrint: 'Preparing to print…', thumbnails: 'Pages', page: 'Page', of: 'of', loading: 'Loading…',
+    download: 'Download PDF', close: 'Close', print: 'Print', preparingPrint: 'Preparing to print…', thumbnails: 'Pages', page: 'Page', of: 'of', loading: 'Loading…',
     error: 'The document could not be loaded.', openPdf: 'Open the PDF', goToPage: 'Go to page'
   }, CFG.i18n || {});
 
@@ -28,6 +28,7 @@
     fullscreen: '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>',
     exitFullscreen: '<path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/>',
     download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
     print: '<path d="M7 9V4h10v5M7 17H4.5v-7.5h15V17H17"/><rect x="7" y="14" width="10" height="6"/>',
     thumbnails: '<rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/>'
   };
@@ -124,9 +125,9 @@
     pager.append(this.pageInput, this.pageTotal);
     groupC.append(this.firstBtn, this.prevSmall, pager, this.nextSmall, this.lastBtn);
 
-    this.zoomOutBtn = button('', 'zoomOut', T.zoomOut);
-    this.zoomInBtn = button('', 'zoomIn', T.zoomIn);
-    this.fsBtn = button('', 'fullscreen', T.fullscreen);
+    this.zoomOutBtn = button('pdfflip__zoom', 'zoomOut', T.zoomOut);
+    this.zoomInBtn = button('pdfflip__zoom', 'zoomIn', T.zoomIn);
+    this.fsBtn = button('pdfflip__fsbtn', 'fullscreen', T.fullscreen);
     groupR.append(this.zoomOutBtn, this.zoomInBtn, this.fsBtn);
     if (o.print !== false) {
       this.printBtn = button('', 'print', T.print);
@@ -137,6 +138,11 @@
       var dl = h('a', 'pdfflip__btn', { href: o.src, download: '', target: '_blank', rel: 'noopener', title: T.download, 'aria-label': T.download });
       dl.innerHTML = icon('download');
       groupR.append(dl);
+    }
+    if (o.modal) {
+      this.closeBtn = button('pdfflip__close', 'close', T.close);
+      this.closeBtn.addEventListener('click', function () { if (self.onClose) self.onClose(); });
+      groupR.append(this.closeBtn);
     }
     bar.append(groupL, groupC, groupR);
 
@@ -291,13 +297,25 @@
       return;
     }
     var last = this.stage.clientWidth + 'x' + this.stage.clientHeight;
-    new ResizeObserver(function () {
+    this.ro = new ResizeObserver(function () {
       var now = self.stage.clientWidth + 'x' + self.stage.clientHeight;
       if (now === last) return;
       last = now;
       clearTimeout(timer);
       timer = setTimeout(function () { self.relayout(); }, 150);
-    }).observe(this.stage);
+    });
+    this.ro.observe(this.stage);
+  };
+
+  Flipbook.prototype.destroy = function () {
+    this.destroyed = true;
+    this.token = (this.token || 0) + 1;
+    this.finishAnimation();
+    if (this.ro) this.ro.disconnect();
+    if (this.thumbObserver) this.thumbObserver.disconnect();
+    this.cache.clear();
+    if (this.pdf) this.pdf.destroy();
+    this.pdf = null;
   };
 
   Flipbook.prototype.relayout = function () {
@@ -611,6 +629,7 @@
     else if (k === '+' || k === '=') { this.setZoom(this.zoomStep(1)); e.preventDefault(); }
     else if (k === '-') { this.setZoom(this.zoomStep(-1)); e.preventDefault(); }
     else if (k === 'Escape' && this.root.classList.contains('pdfflip--fs-fallback')) { this.toggleFullscreen(); }
+    else if (k === 'Escape' && this.onClose) { this.onClose(); }
   };
 
   Flipbook.prototype.bindPointer = function () {
@@ -873,12 +892,14 @@
 
   // iPhone Safari has no element fullscreen: cover the window instead.
   Flipbook.prototype.fallbackFullscreen = function () {
+    if (this.opts.modal) return; // the modal already covers the window
     this.root.classList.add('pdfflip--fs-fallback');
     document.documentElement.classList.add('pdfflip-lock');
     this.onFullscreenChange();
   };
 
   Flipbook.prototype.onFullscreenChange = function () {
+    if (this.destroyed || !this.root.isConnected) return;
     var fs = this.isFullscreen();
     this.root.classList.toggle('pdfflip--fs', fs);
     this.fsBtn.innerHTML = icon(fs ? 'exitFullscreen' : 'fullscreen');
@@ -947,7 +968,99 @@
   window.addEventListener('orientationchange', fitSoon);
   window.addEventListener('load', fitScreens);
 
-  window.PDFFlipbook = { init: init, fit: fitScreens };
+  /* ---------------- links to PDFs open in a full-screen modal ---------------- */
+
+  var modal = null;
+
+  function linkOptions(a, url) {
+    var d = a.dataset, o = {};
+    var text = (a.getAttribute('title') || a.textContent || '').replace(/\s+/g, ' ').trim();
+    var file = decodeURIComponent(url.pathname.split('/').pop() || '');
+    o.title = d.pdfflipTitle || (text && text.length <= 120 ? text : file);
+    if (d.pdfflipMode) o.mode = d.pdfflipMode;
+    if (d.pdfflipCover) o.cover = d.pdfflipCover !== '0';
+    var page = d.pdfflipStart || (/(?:^|&)page=(\d+)/.exec(url.hash.slice(1)) || [])[1];
+    if (page) o.start = parseInt(page, 10) || 1;
+    return o;
+  }
+
+  function openModal(src, opts, trigger) {
+    closeModal(true);
+    var D = CFG.defaults || {};
+    var o = Object.assign({
+      mode: D.mode || 'auto', cover: D.cover !== false, start: 1,
+      download: D.download !== false, print: D.print !== false, thumbs: true
+    }, opts, { src: src, modal: true });
+
+    var overlay = h('div', 'pdfflip-overlay', { role: 'dialog', 'aria-modal': 'true' });
+    if (o.title) overlay.setAttribute('aria-label', o.title);
+    var root = h('div', 'pdfflip pdfflip--modal');
+    root.setAttribute('data-pdfflip', JSON.stringify(o));
+    if (D.background) root.style.setProperty('--pdfflip-bg', D.background);
+    if (D.accent) root.style.setProperty('--pdfflip-accent', D.accent);
+    overlay.append(root);
+
+    var fb = root.pdfflip = new Flipbook(root); // set before insertion, so auto-init skips it
+    fb.onClose = function () { closeModal(false); };
+    document.body.append(overlay);
+    document.documentElement.classList.add('pdfflip-lock');
+
+    modal = { overlay: overlay, fb: fb, trigger: trigger, pushed: false };
+    // The phone's Back button closes the modal instead of leaving the page.
+    try { history.pushState({ pdfflipModal: true }, ''); modal.pushed = true; } catch (e) { /* ignore */ }
+
+    requestAnimationFrame(function () { overlay.classList.add('pdfflip-overlay--open'); });
+    root.focus({ preventScroll: true });
+    fb.load();
+  }
+
+  function closeModal(fromHistory) {
+    if (!modal) return;
+    var m = modal;
+    modal = null;
+    var fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fsEl && m.overlay.contains(fsEl)) {
+      try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) { /* ignore */ }
+    }
+    m.fb.destroy();
+    m.overlay.remove();
+    document.documentElement.classList.remove('pdfflip-lock');
+    if (m.pushed && !fromHistory) history.back();
+    if (m.trigger && m.trigger.focus) m.trigger.focus({ preventScroll: true });
+  }
+
+  window.addEventListener('popstate', function () { if (modal) closeModal(true); });
+
+  // Which links open in the modal: CFG.modal = 'all' (every PDF link to this site), 'class' (only links
+  // with, or inside an element with, the class "pdfflip-modal"), or 'off'.
+  function modalTarget(a) {
+    var mode = CFG.modal || 'class';
+    if (mode === 'off' || a.hasAttribute('download') || a.closest('.pdfflip, .pdfflip-ignore')) return null;
+    var href = a.getAttribute('href');
+    if (!href || href.charAt(0) === '#') return null;
+    var url;
+    try { url = new URL(href, location.href); } catch (e) { return null; }
+    if (!/^https?:$/.test(url.protocol)) return null;
+    var isPdf = /\.pdf$/i.test(url.pathname);
+    var optIn = a.closest('.pdfflip-modal');
+    if (a.hasAttribute('data-pdfflip-modal') || (optIn && isPdf)) return url;
+    if (mode === 'all' && isPdf && url.origin === location.origin) return url;
+    return null;
+  }
+
+  document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    var url = modalTarget(a);
+    if (!url) return;
+    e.preventDefault();
+    e.stopPropagation(); // keep UIkit lightboxes or other scripts from opening it as well
+    var src = url.href.replace(/#.*$/, '');
+    openModal(src, linkOptions(a, url), a);
+  }, true);
+
+  window.PDFFlipbook = { init: init, fit: fitScreens, open: function (src, opts) { openModal(src, opts || {}, null); }, close: function () { closeModal(false); } };
 
   function start() {
     init(document);

@@ -203,6 +203,15 @@
 .pdfflip--fs-fallback {
   position: fixed !important; inset: 0; z-index: 2147483000; width: 100% !important; height: 100% !important; margin: 0 !important;
 }
+/* full-screen modal for PDF links */
+.pdfflip-overlay {
+  position: fixed; inset: 0; z-index: 2147482000; background: rgba(0, 0, 0, .7);
+  opacity: 0; transition: opacity .25s ease;
+}
+.pdfflip-overlay--open { opacity: 1; }
+.pdfflip--modal { height: 100% !important; min-height: 0; }
+.pdfflip__close { margin-left: 4px; }
+@media (prefers-reduced-motion: reduce) { .pdfflip-overlay { transition: none; } }
 html.pdfflip-lock, html.pdfflip-lock body { overflow: hidden !important; }
 
 /* small screens */
@@ -215,6 +224,7 @@ html.pdfflip-lock, html.pdfflip-lock body { overflow: hidden !important; }
   .pdfflip__group--pager .pdfflip__btn { display: none; }
   .pdfflip__bar { padding: 0 4px; gap: 4px; }
   .pdfflip__title { display: none; }
+  .pdfflip--modal .pdfflip__zoom, .pdfflip--modal .pdfflip__fsbtn { display: none; }
   .pdfflip__btn { width: 36px; height: 36px; }
   .pdfflip__thumb-img, .pdfflip__thumb-img canvas { height: 80px; }
 }

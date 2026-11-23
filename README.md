@@ -57,6 +57,22 @@ YOOtheme Pro ή του Joomla δεν το αγγίζουν. Οι layouts που 
 | `thumbs` | `1` / `0` | `1` |
 | `background`, `accent` | χρώμα (`#hex`, `rgb()`) | από το plugin |
 
+### Links προς PDF σε modal πλήρους οθόνης
+
+Από προεπιλογή, **κάθε link προς PDF του site** ανοίγει σε flipbook πλήρους οθόνης πάνω από
+τη σελίδα (όχι σε νέα καρτέλα). Αυτό ισχύει για buttons, εικόνες, links σε άρθρα και menu items του YOOtheme.
+Κλείνει με το X, με Esc ή με το Back του κινητού.
+
+- `images/catalog.pdf#page=5`: ανοίγει κατευθείαν στη σελίδα 5.
+- Τίτλος: το `title` του link, αλλιώς το κείμενό του, αλλιώς το όνομα του αρχείου.
+  Για δικό σου τίτλο χρησιμοποίησε `data-pdfflip-title="…"`.
+- Εξαιρέσεις: links με `download`, links μέσα σε στοιχείο με κλάση `pdfflip-ignore`, links
+  προς άλλα domains, και Ctrl/Cmd/μεσαίο κλικ (που ανοίγουν κανονικά νέα καρτέλα).
+- Στις ρυθμίσεις του plugin (*Άνοιγμα links PDF σε flipbook*) μπορείς να το περιορίσεις
+  **μόνο** σε links με την κλάση `pdfflip-modal`. Η κλάση μπαίνει στο ίδιο το link ή σε
+  ένα YOOtheme element (*Advanced → CSS Class*). Μπορείς και να το απενεργοποιήσεις.
+- Από JavaScript: `PDFFlipbook.open('/images/catalog.pdf', { title: 'Κατάλογος', start: 3 })`.
+
 ### Προσαρμογή στο ύψος της οθόνης
 
 Η προεπιλογή είναι `screen` («Fit screen» στο element). Ο viewer γεμίζει όλο το ύψος της

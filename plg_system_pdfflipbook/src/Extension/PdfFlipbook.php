@@ -64,7 +64,10 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
             $body = $this->replaceShortcodes($body);
         }
 
+        $modal  = (string) $this->params->get('modal_links', 'all');
         $needed = preg_match('#class="pdfflip[" ]#', $body) === 1
+            || ($modal !== 'off' && (str_contains($body, 'pdfflip-modal') || str_contains($body, 'data-pdfflip-modal')))
+            || ($modal === 'all' && preg_match('#href=["\'][^"\']+\.pdf(?:[?\#][^"\']*)?["\']#i', $body) === 1)
             || (bool) $this->params->get('always_load', 0)
             || self::isYoothemeCustomizer();
 
@@ -183,7 +186,7 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
 
         $keys = [
             'prev', 'next', 'first', 'last', 'zoomIn', 'zoomOut', 'fullscreen', 'exitFullscreen',
-            'download', 'print', 'preparingPrint', 'thumbnails', 'page', 'of', 'loading', 'error', 'openPdf', 'goToPage',
+            'download', 'close', 'print', 'preparingPrint', 'thumbnails', 'page', 'of', 'loading', 'error', 'openPdf', 'goToPage',
         ];
         $i18n = [];
 
@@ -199,6 +202,15 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
             'wasm'   => $base . '/vendor/pdfjs/wasm/',
             'iccs'   => $base . '/vendor/pdfjs/iccs/',
             'i18n'   => $i18n,
+            'modal'  => (string) $this->params->get('modal_links', 'all'),
+            'defaults' => [
+                'mode'       => (string) $this->params->get('mode', 'auto'),
+                'cover'      => (bool) $this->params->get('cover', 1),
+                'download'   => (bool) $this->params->get('download', 1),
+                'print'      => (bool) $this->params->get('print', 1),
+                'background' => self::cssColor('', (string) $this->params->get('background', '#2b2b2b')),
+                'accent'     => self::cssColor('', (string) $this->params->get('accent', '#ffffff')),
+            ],
         ];
 
         $json = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP);
