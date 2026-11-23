@@ -15,6 +15,7 @@ $html = PdfFlipbook::markup([
     'start'      => $props['start_page'] ?? 1,
     'download'   => !empty($props['show_download']) ? '1' : '0',
     'print'      => ['show' => '1', 'hide' => '0'][$props['show_print'] ?? ''] ?? null,
+    'transition' => $props['transition'] ?? '',
     'thumbs'     => !empty($props['show_thumbnails']) ? '1' : '0',
     'background' => $props['background'] ?? '',
     'accent'     => $props['accent'] ?? '',

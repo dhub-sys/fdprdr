@@ -61,6 +61,18 @@
                 "Single page": "single"
             }
         },
+        "transition": {
+            "label": "Page change",
+            "description": "Animation when the page changes. Flip needs two-page spreads; on single pages it slides.",
+            "type": "select",
+            "options": {
+                "Plugin default": "",
+                "Page flip": "flip",
+                "Slide": "slide",
+                "Fade": "fade",
+                "None": "none"
+            }
+        },
         "cover": {
             "label": "Cover",
             "type": "checkbox",
@@ -133,6 +145,7 @@
                         "height_mode",
                         "viewer_height",
                         "layout",
+                        "transition",
                         "cover",
                         "start_page",
                         "show_thumbnails",

@@ -9,7 +9,7 @@
   var T = Object.assign({
     prev: 'Previous page', next: 'Next page', first: 'First page', last: 'Last page',
     zoomIn: 'Zoom in', zoomOut: 'Zoom out', fullscreen: 'Full screen', exitFullscreen: 'Exit full screen',
-    download: 'Download PDF', close: 'Close', print: 'Print', preparingPrint: 'Preparing to print…', thumbnails: 'Pages', page: 'Page', of: 'of', loading: 'Loading…',
+    download: 'Download PDF', close: 'Close', closeEsc: 'Esc', print: 'Print', preparingPrint: 'Preparing to print…', thumbnails: 'Pages', page: 'Page', of: 'of', loading: 'Loading…',
     error: 'The document could not be loaded.', openPdf: 'Open the PDF', goToPage: 'Go to page'
   }, CFG.i18n || {});
 
@@ -139,10 +139,22 @@
       dl.innerHTML = icon('download');
       groupR.append(dl);
     }
-    if (o.modal) {
+    var closePos = o.modal ? (o.close || 'top') : '';
+    if (closePos === 'bar' || closePos === 'both') {
       this.closeBtn = button('pdfflip__close', 'close', T.close);
       this.closeBtn.addEventListener('click', function () { if (self.onClose) self.onClose(); });
       groupR.append(this.closeBtn);
+    }
+    if (closePos === 'top' || closePos === 'both') {
+      // Large, always visible close button in the top right corner of the modal.
+      var top = h('button', 'pdfflip__close-top', { type: 'button', title: T.close + ' (Esc)', 'aria-label': T.close });
+      top.innerHTML = (o.escHint !== false ? '<span class="pdfflip__close-label">' + T.close + '</span><kbd class="pdfflip__close-kbd">' + T.closeEsc + '</kbd>' : '')
+        + '<span class="pdfflip__close-icon">' + icon('close') + '</span>';
+      if (o.escHint !== false) top.classList.add('pdfflip__close-top--hint');
+      top.addEventListener('click', function () { if (self.onClose) self.onClose(); });
+      top.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+      r.classList.add('pdfflip--close-top');
+      this.closeTop = top;
     }
     bar.append(groupL, groupC, groupR);
 
@@ -150,6 +162,7 @@
     this.live = h('div', 'pdfflip__sr', { 'aria-live': 'polite' });
 
     r.append(this.stage, this.prevBtn, this.nextBtn, this.thumbs, bar, this.loader, this.live);
+    if (this.closeTop) r.append(this.closeTop);
 
     this.prevBtn.addEventListener('click', function () { self.prev(); });
     this.nextBtn.addEventListener('click', function () { self.next(); });
@@ -453,7 +466,10 @@
       var spread = self.spreads[i];
       var animate = dir && !reduceMotion && self.zoom === 1 && from !== i;
 
-      if (animate && self.double) {
+      // flip (3D, two-page spreads only) | slide | fade | none
+      var tr = self.opts.transition || 'flip';
+
+      if (animate && self.double && tr === 'flip') {
         self.flip(dir, els, spread);
       } else {
         self.finishAnimation();
@@ -463,14 +479,16 @@
         } else {
           self.place(self.left, els[0]);
           self.place(self.right, null);
-          if (animate && self.left.animate) {
-            self.left.animate([
-              { opacity: 0, transform: 'translateX(' + (dir * 40) + 'px)' },
-              { opacity: 1, transform: 'none' }
-            ], { duration: 280, easing: 'ease-out' });
-          }
         }
         self.book.style.transform = 'translateX(' + self.shiftFor(spread) + '%)';
+        if (animate && tr !== 'none') {
+          var frames = tr === 'fade'
+            ? [{ opacity: 0 }, { opacity: 1 }]
+            : [{ opacity: 0, transform: 'translateX(' + (dir * 40) + 'px)' }, { opacity: 1, transform: 'none' }];
+          (self.double ? [self.left, self.right] : [self.left]).forEach(function (slot) {
+            if (slot.animate) slot.animate(frames, { duration: tr === 'fade' ? 320 : 280, easing: 'ease-out' });
+          });
+        }
       }
       self.preload(i);
     });
@@ -681,6 +699,11 @@
       // A single click on a page turns it, like Adobe Publish Online.
       var target = e.target, x = e.clientX;
       self.tapTimer = setTimeout(function () {
+        // Modal: a click on the empty area around the pages closes it (if enabled).
+        if (self.onClose && self.opts.backdropClose && !self.book.contains(target)) {
+          self.onClose();
+          return;
+        }
         if (!self.double) {
           if (!self.left.contains(target)) return;
           var r = self.left.getBoundingClientRect();
@@ -987,16 +1010,26 @@
   function openModal(src, opts, trigger) {
     closeModal(true);
     var D = CFG.defaults || {};
+    var M = CFG.modalOptions || {};
     var o = Object.assign({
-      mode: D.mode || 'auto', cover: D.cover !== false, start: 1,
-      download: D.download !== false, print: D.print !== false, thumbs: true
+      mode: D.mode || 'auto', cover: D.cover !== false, start: 1, transition: D.transition || 'flip',
+      download: D.download !== false, print: D.print !== false, thumbs: true,
+      close: M.close || 'top', escHint: M.escHint !== false, backdropClose: !!M.backdropClose
     }, opts, { src: src, modal: true });
 
     var overlay = h('div', 'pdfflip-overlay', { role: 'dialog', 'aria-modal': 'true' });
     if (o.title) overlay.setAttribute('aria-label', o.title);
+    // Background colour with opacity, and a blur of the web page behind it.
+    var bg = withAlpha(M.color || '#111111', M.opacity === undefined ? 85 : M.opacity);
+    overlay.style.background = bg;
+    var blur = parseInt(M.blur === undefined ? 8 : M.blur, 10) || 0;
+    if (blur > 0) {
+      overlay.style.setProperty('-webkit-backdrop-filter', 'blur(' + blur + 'px)');
+      overlay.style.setProperty('backdrop-filter', 'blur(' + blur + 'px)');
+    }
     var root = h('div', 'pdfflip pdfflip--modal');
     root.setAttribute('data-pdfflip', JSON.stringify(o));
-    if (D.background) root.style.setProperty('--pdfflip-bg', D.background);
+    root.style.setProperty('--pdfflip-bg', bg);
     if (D.accent) root.style.setProperty('--pdfflip-accent', D.accent);
     overlay.append(root);
 
@@ -1006,6 +1039,7 @@
     document.documentElement.classList.add('pdfflip-lock');
 
     modal = { overlay: overlay, fb: fb, trigger: trigger, pushed: false };
+    document.addEventListener('keydown', onModalKey, true);
     // The phone's Back button closes the modal instead of leaving the page.
     try { history.pushState({ pdfflipModal: true }, ''); modal.pushed = true; } catch (e) { /* ignore */ }
 
@@ -1022,11 +1056,33 @@
     if (fsEl && m.overlay.contains(fsEl)) {
       try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) { /* ignore */ }
     }
+    document.removeEventListener('keydown', onModalKey, true);
     m.fb.destroy();
     m.overlay.remove();
     document.documentElement.classList.remove('pdfflip-lock');
     if (m.pushed && !fromHistory) history.back();
     if (m.trigger && m.trigger.focus) m.trigger.focus({ preventScroll: true });
+  }
+
+  // Esc closes the modal wherever the focus is (but first leaves real fullscreen, which the browser handles).
+  function onModalKey(e) {
+    if (e.key !== 'Escape' || !modal) return;
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+    e.preventDefault();
+    e.stopPropagation();
+    closeModal(false);
+  }
+
+  // '#rrggbb' / '#rgb' + opacity 0–100 → rgba(); other colour formats use color-mix().
+  function withAlpha(color, opacity) {
+    var a = Math.max(0, Math.min(100, Number(opacity))) / 100;
+    var m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color);
+    if (m) {
+      var hex = m[1].length === 3 ? m[1].replace(/(.)/g, '$1$1') : m[1];
+      var n = parseInt(hex, 16);
+      return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+    return 'color-mix(in srgb, ' + color + ' ' + (a * 100) + '%, transparent)';
   }
 
   window.addEventListener('popstate', function () { if (modal) closeModal(true); });

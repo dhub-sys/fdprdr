@@ -5,7 +5,7 @@
     <creationDate>2026-11</creationDate>
     <copyright>(C) 2026</copyright>
     <license>GNU General Public License version 2 or later</license>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
     <description>PLG_SYSTEM_PDFFLIPBOOK_XML_DESCRIPTION</description>
     <namespace path="src">Dhub\Plugin\System\PdfFlipbook</namespace>
 
@@ -34,6 +34,14 @@
                     <option value="double">PLG_SYSTEM_PDFFLIPBOOK_MODE_DOUBLE</option>
                     <option value="single">PLG_SYSTEM_PDFFLIPBOOK_MODE_SINGLE</option>
                 </field>
+                <field name="transition" type="list" default="flip"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_DESC">
+                    <option value="flip">PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_FLIP</option>
+                    <option value="slide">PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_SLIDE</option>
+                    <option value="fade">PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_FADE</option>
+                    <option value="none">PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_NONE</option>
+                </field>
                 <field name="cover" type="radio" default="1" layout="joomla.form.field.radio.switcher"
                        label="PLG_SYSTEM_PDFFLIPBOOK_COVER_LABEL"
                        description="PLG_SYSTEM_PDFFLIPBOOK_COVER_DESC">
@@ -55,6 +63,14 @@
                        label="PLG_SYSTEM_PDFFLIPBOOK_BACKGROUND_LABEL"/>
                 <field name="accent" type="color" default="#ffffff"
                        label="PLG_SYSTEM_PDFFLIPBOOK_ACCENT_LABEL"/>
+                <field name="always_load" type="radio" default="0" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_ALWAYS_LOAD_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_ALWAYS_LOAD_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+            <fieldset name="modal" label="PLG_SYSTEM_PDFFLIPBOOK_FIELDSET_MODAL">
                 <field name="modal_links" type="list" default="all"
                        label="PLG_SYSTEM_PDFFLIPBOOK_MODAL_LABEL"
                        description="PLG_SYSTEM_PDFFLIPBOOK_MODAL_DESC">
@@ -62,12 +78,38 @@
                     <option value="class">PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLASS</option>
                     <option value="off">PLG_SYSTEM_PDFFLIPBOOK_MODAL_OFF</option>
                 </field>
-                <field name="always_load" type="radio" default="0" layout="joomla.form.field.radio.switcher"
-                       label="PLG_SYSTEM_PDFFLIPBOOK_ALWAYS_LOAD_LABEL"
-                       description="PLG_SYSTEM_PDFFLIPBOOK_ALWAYS_LOAD_DESC">
+                <field name="modal_close" type="list" default="top"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLOSE_LABEL"
+                       showon="modal_links!:off">
+                    <option value="top">PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLOSE_TOP</option>
+                    <option value="bar">PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLOSE_BAR</option>
+                    <option value="both">PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLOSE_BOTH</option>
+                </field>
+                <field name="modal_esc_hint" type="radio" default="1" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_MODAL_ESC_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_MODAL_ESC_DESC"
+                       showon="modal_links!:off[AND]modal_close!:bar">
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
+                <field name="modal_backdrop_close" type="radio" default="0" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_MODAL_BACKDROP_CLOSE_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_MODAL_BACKDROP_CLOSE_DESC"
+                       showon="modal_links!:off">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="modal_color" type="color" default="#111111"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_MODAL_COLOR_LABEL"
+                       showon="modal_links!:off"/>
+                <field name="modal_opacity" type="number" default="85" min="0" max="100" step="1"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_MODAL_OPACITY_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_MODAL_OPACITY_DESC"
+                       showon="modal_links!:off"/>
+                <field name="modal_blur" type="number" default="8" min="0" max="40" step="1"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_MODAL_BLUR_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_MODAL_BLUR_DESC"
+                       showon="modal_links!:off"/>
             </fieldset>
         </fields>
     </config>

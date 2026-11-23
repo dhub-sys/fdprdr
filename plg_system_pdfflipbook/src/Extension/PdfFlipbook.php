@@ -113,6 +113,7 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
             'download' => $bool($options['download'] ?? null, $defaults->get('download', 1)),
             'print'    => $bool($options['print'] ?? null, $defaults->get('print', 1)),
             'thumbs'   => $bool($options['thumbs'] ?? null, 1),
+            'transition' => self::transition((string) ($options['transition'] ?? ''), (string) $defaults->get('transition', 'flip')),
         ];
 
         $height = self::cssLength((string) ($options['height'] ?? ''), (string) $defaults->get('height', 'screen'));
@@ -186,7 +187,7 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
 
         $keys = [
             'prev', 'next', 'first', 'last', 'zoomIn', 'zoomOut', 'fullscreen', 'exitFullscreen',
-            'download', 'close', 'print', 'preparingPrint', 'thumbnails', 'page', 'of', 'loading', 'error', 'openPdf', 'goToPage',
+            'download', 'close', 'closeEsc', 'print', 'preparingPrint', 'thumbnails', 'page', 'of', 'loading', 'error', 'openPdf', 'goToPage',
         ];
         $i18n = [];
 
@@ -203,8 +204,17 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
             'iccs'   => $base . '/vendor/pdfjs/iccs/',
             'i18n'   => $i18n,
             'modal'  => (string) $this->params->get('modal_links', 'all'),
+            'modalOptions' => [
+                'close'         => \in_array($this->params->get('modal_close', 'top'), ['top', 'bar', 'both'], true) ? $this->params->get('modal_close', 'top') : 'top',
+                'escHint'       => (bool) $this->params->get('modal_esc_hint', 1),
+                'backdropClose' => (bool) $this->params->get('modal_backdrop_close', 0),
+                'color'         => self::cssColor('', (string) $this->params->get('modal_color', '#111111')),
+                'opacity'       => max(0, min(100, (int) $this->params->get('modal_opacity', 85))),
+                'blur'          => max(0, min(40, (int) $this->params->get('modal_blur', 8))),
+            ],
             'defaults' => [
                 'mode'       => (string) $this->params->get('mode', 'auto'),
+                'transition' => self::transition('', (string) $this->params->get('transition', 'flip')),
                 'cover'      => (bool) $this->params->get('cover', 1),
                 'download'   => (bool) $this->params->get('download', 1),
                 'print'      => (bool) $this->params->get('print', 1),
@@ -255,6 +265,17 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
         }
 
         return 'screen';
+    }
+
+    private static function transition(string $value, string $default): string
+    {
+        foreach ([strtolower(trim($value)), strtolower(trim($default))] as $candidate) {
+            if (\in_array($candidate, ['flip', 'slide', 'fade', 'none'], true)) {
+                return $candidate;
+            }
+        }
+
+        return 'flip';
     }
 
     private static function cssColor(string $value, string $default): string

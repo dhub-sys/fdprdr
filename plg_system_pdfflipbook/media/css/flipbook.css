@@ -205,11 +205,46 @@
 }
 /* full-screen modal for PDF links */
 .pdfflip-overlay {
-  position: fixed; inset: 0; z-index: 2147482000; background: rgba(0, 0, 0, .7);
+  position: fixed; inset: 0; z-index: 2147482000; background: rgba(17, 17, 17, .85);
   opacity: 0; transition: opacity .25s ease;
 }
 .pdfflip-overlay--open { opacity: 1; }
-.pdfflip--modal { height: 100% !important; min-height: 0; }
+.pdfflip--modal { height: 100% !important; min-height: 0; background: transparent; }
+
+/* large close button, top right */
+.pdfflip__close-top {
+  position: absolute; top: 16px; right: 16px; z-index: 9;
+  display: inline-flex; align-items: center; gap: 10px; height: 52px; margin: 0; padding: 0;
+  border: 0; border-radius: 999px; background: #fff; color: #111;
+  font: 600 15px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .35); cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.pdfflip__close-top--hint { padding-left: 20px; }
+.pdfflip__close-top:hover { transform: scale(1.05); box-shadow: 0 8px 30px rgba(0, 0, 0, .45); }
+.pdfflip__close-top:focus-visible { outline: 3px solid var(--pdfflip-accent, #fff); outline-offset: 3px; }
+.pdfflip__close-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; border-radius: 50%;
+}
+.pdfflip__close-top--hint .pdfflip__close-icon { width: 40px; height: 40px; margin-right: 6px; background: #111; color: #fff; }
+.pdfflip__close-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.pdfflip__close-top--hint .pdfflip__close-icon svg { width: 20px; height: 20px; }
+.pdfflip__close-kbd {
+  padding: 3px 7px; border: 1px solid rgba(0, 0, 0, .25); border-bottom-width: 2px; border-radius: 5px;
+  background: #f3f3f3; color: #333; font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (max-width: 639px), (pointer: coarse) {
+  .pdfflip__close-label, .pdfflip__close-kbd { display: none; }
+  .pdfflip__close-top--hint { padding-left: 0; }
+  .pdfflip__close-top--hint .pdfflip__close-icon { width: 44px; height: 44px; margin: 0; background: none; color: #111; }
+  .pdfflip__close-top { top: 10px; right: 10px; height: 44px; }
+  .pdfflip__close-icon { width: 44px; height: 44px; }
+}
+/* keep the page below the close button on narrow screens */
+@media (max-width: 639px), (max-aspect-ratio: 4/5) {
+  .pdfflip--close-top { --pdfflip-top: 64px; }
+}
 .pdfflip__close { margin-left: 4px; }
 @media (prefers-reduced-motion: reduce) { .pdfflip-overlay { transition: none; } }
 html.pdfflip-lock, html.pdfflip-lock body { overflow: hidden !important; }
