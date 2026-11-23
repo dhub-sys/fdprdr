@@ -5,7 +5,7 @@
     <creationDate>2026-11</creationDate>
     <copyright>(C) 2026</copyright>
     <license>GNU General Public License version 2 or later</license>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <description>PLG_SYSTEM_PDFFLIPBOOK_XML_DESCRIPTION</description>
     <namespace path="src">Dhub\Plugin\System\PdfFlipbook</namespace>
 
@@ -25,7 +25,7 @@
     <config>
         <fields name="params">
             <fieldset name="basic">
-                <field name="height" type="text" default="80vh"
+                <field name="height" type="text" default="screen"
                        label="PLG_SYSTEM_PDFFLIPBOOK_HEIGHT_LABEL"
                        description="PLG_SYSTEM_PDFFLIPBOOK_HEIGHT_DESC"/>
                 <field name="mode" type="list" default="auto"

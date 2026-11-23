@@ -9,7 +9,7 @@ if (!class_exists(PdfFlipbook::class) || empty($props['pdf'])) {
 $html = PdfFlipbook::markup([
     'src'        => $props['pdf'],
     'title'      => $props['title'] ?? '',
-    'height'     => $props['viewer_height'] ?? '',
+    'height'     => ($props['height_mode'] ?? '') === 'screen' ? 'screen' : ($props['viewer_height'] ?? ''),
     'mode'       => $props['layout'] ?? '',
     'cover'      => !empty($props['cover']) ? '1' : '0',
     'start'      => $props['start_page'] ?? 1,

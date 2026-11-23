@@ -64,7 +64,7 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
             $body = $this->replaceShortcodes($body);
         }
 
-        $needed = str_contains($body, 'class="pdfflip"')
+        $needed = preg_match('#class="pdfflip[" ]#', $body) === 1
             || (bool) $this->params->get('always_load', 0)
             || self::isYoothemeCustomizer();
 
@@ -111,8 +111,10 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
             'thumbs'   => $bool($options['thumbs'] ?? null, 1),
         ];
 
+        $height = self::cssLength((string) ($options['height'] ?? ''), (string) $defaults->get('height', 'screen'));
+
         $style = [
-            '--pdfflip-height:' . self::cssLength((string) ($options['height'] ?? ''), (string) $defaults->get('height', '80vh')),
+            '--pdfflip-height:' . ($height === 'screen' ? '100vh' : $height),
             '--pdfflip-bg:' . self::cssColor((string) ($options['background'] ?? ''), (string) $defaults->get('background', '#2b2b2b')),
             '--pdfflip-accent:' . self::cssColor((string) ($options['accent'] ?? ''), (string) $defaults->get('accent', '#ffffff')),
         ];
@@ -120,7 +122,10 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
         $label = $config['title'] !== '' ? $config['title'] : Text::_('PLG_SYSTEM_PDFFLIPBOOK_OPEN_PDF');
         $json  = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-        return '<div class="pdfflip" data-pdfflip="' . htmlspecialchars($json, ENT_QUOTES, 'UTF-8') . '"'
+        // "screen": the viewer fills the screen height below the site's sticky header (set by flipbook.js).
+        $class = $height === 'screen' ? 'pdfflip pdfflip--screen' : 'pdfflip';
+
+        return '<div class="' . $class . '" data-pdfflip="' . htmlspecialchars($json, ENT_QUOTES, 'UTF-8') . '"'
             . ' style="' . htmlspecialchars(implode(';', $style), ENT_QUOTES, 'UTF-8') . '">'
             . '<a class="pdfflip__fallback" href="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener">'
             . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a>'
@@ -222,7 +227,11 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
 
     private static function cssLength(string $value, string $default): string
     {
-        foreach ([trim($value), trim($default)] as $candidate) {
+        foreach ([strtolower(trim($value)), strtolower(trim($default))] as $candidate) {
+            if (\in_array($candidate, ['screen', 'auto', 'fit'], true)) {
+                return 'screen';
+            }
+
             if (preg_match('/^\d+(\.\d+)?$/', $candidate)) {
                 return $candidate . 'px';
             }
@@ -232,7 +241,7 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
             }
         }
 
-        return '80vh';
+        return 'screen';
     }
 
     private static function cssColor(string $value, string $default): string

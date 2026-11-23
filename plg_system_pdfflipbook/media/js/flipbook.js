@@ -802,9 +802,47 @@
       el.pdfflip = new Flipbook(el);
       if (lazy) lazy.observe(el); else el.pdfflip.load();
     });
+    fitScreens();
   }
 
-  window.PDFFlipbook = { init: init };
+  /* ---------------- fit to screen height ---------------- */
+
+  function visible(el) {
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  }
+
+  // Height of the site's sticky header (YOOtheme Pro, Cassiopeia or any fixed/sticky <header>).
+  function headerOffset() {
+    var max = 0;
+    var sel = '.tm-header [uk-sticky], .tm-header-mobile [uk-sticky], .tm-header[uk-sticky], .tm-header-mobile[uk-sticky],'
+      + ' .tm-header, .tm-header-mobile, header, .uk-navbar-container';
+    Array.prototype.forEach.call(document.querySelectorAll(sel), function (el) {
+      if (!visible(el) || el.closest('.pdfflip')) return;
+      var pos = window.getComputedStyle(el).position;
+      var sticky = el.hasAttribute('uk-sticky') || pos === 'fixed' || pos === 'sticky';
+      if (!sticky) return;
+      if (pos === 'fixed' && el.getBoundingClientRect().top > 5) return;
+      max = Math.max(max, el.offsetHeight);
+    });
+    return Math.min(max, Math.round(window.innerHeight * 0.4));
+  }
+
+  function fitScreens() {
+    var roots = document.querySelectorAll('.pdfflip--screen');
+    if (!roots.length) return;
+    var off = headerOffset() + 'px';
+    Array.prototype.forEach.call(roots, function (r) {
+      if (r.style.getPropertyValue('--pdfflip-offset') !== off) r.style.setProperty('--pdfflip-offset', off);
+    });
+  }
+
+  var fitTimer;
+  function fitSoon() { clearTimeout(fitTimer); fitTimer = setTimeout(fitScreens, 120); }
+  window.addEventListener('resize', fitSoon);
+  window.addEventListener('orientationchange', fitSoon);
+  window.addEventListener('load', fitScreens);
+
+  window.PDFFlipbook = { init: init, fit: fitScreens };
 
   function start() {
     init(document);

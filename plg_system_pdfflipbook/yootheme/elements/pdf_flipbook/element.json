@@ -7,6 +7,7 @@
     "element": true,
     "width": 500,
     "defaults": {
+        "height_mode": "screen",
         "layout": "",
         "cover": true,
         "start_page": 1,
@@ -38,9 +39,18 @@
             "description": "Shown in the top bar of the viewer. Leave empty to hide it.",
             "source": true
         },
-        "viewer_height": {
+        "height_mode": {
             "label": "Height",
-            "description": "Height of the viewer, e.g. 80vh, 700px. Leave empty to use the plugin default.",
+            "description": "Fit screen: the viewer fills the screen height below the site header, so a whole page is always visible.",
+            "type": "select",
+            "options": {
+                "Fit screen": "screen",
+                "Custom / plugin default": ""
+            }
+        },
+        "viewer_height": {
+            "description": "Custom height, e.g. 80vh or 700px. Leave empty to use the plugin default.",
+            "enable": "height_mode != 'screen'",
             "attrs": {
                 "placeholder": "80vh"
             }
@@ -115,6 +125,7 @@
                 {
                     "title": "Settings",
                     "fields": [
+                        "height_mode",
                         "viewer_height",
                         "layout",
                         "cover",
