@@ -78,7 +78,7 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
     /**
      * Returns the viewer markup. Used by the shortcode and the YOOtheme element.
      *
-     * @param  array  $options  src, title, height, mode (auto|double|single), cover, start, download, thumbs,
+     * @param  array  $options  src, title, height, mode (auto|double|single), cover, start, download, print, thumbs,
      *                          background, accent
      */
     public static function markup(array $options): string
@@ -108,6 +108,7 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
             'cover'    => $bool($options['cover'] ?? null, $defaults->get('cover', 1)),
             'start'    => max(1, (int) ($options['start'] ?? 1)),
             'download' => $bool($options['download'] ?? null, $defaults->get('download', 1)),
+            'print'    => $bool($options['print'] ?? null, $defaults->get('print', 1)),
             'thumbs'   => $bool($options['thumbs'] ?? null, 1),
         ];
 
@@ -182,7 +183,7 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
 
         $keys = [
             'prev', 'next', 'first', 'last', 'zoomIn', 'zoomOut', 'fullscreen', 'exitFullscreen',
-            'download', 'thumbnails', 'page', 'of', 'loading', 'error', 'openPdf', 'goToPage',
+            'download', 'print', 'preparingPrint', 'thumbnails', 'page', 'of', 'loading', 'error', 'openPdf', 'goToPage',
         ];
         $i18n = [];
 

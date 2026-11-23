@@ -82,6 +82,16 @@
             "type": "checkbox",
             "text": "Show download button"
         },
+        "show_print": {
+            "label": "Print button",
+            "description": "Prints only the PDF, not the web page.",
+            "type": "select",
+            "options": {
+                "Plugin default": "",
+                "Show": "show",
+                "Hide": "hide"
+            }
+        },
         "background": {
             "label": "Background",
             "description": "Leave empty to use the plugin default.",
@@ -127,6 +137,7 @@
                         "start_page",
                         "show_thumbnails",
                         "show_download",
+                        "show_print",
                         "background",
                         "accent"
                     ]

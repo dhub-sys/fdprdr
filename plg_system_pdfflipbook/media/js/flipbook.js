@@ -9,7 +9,7 @@
   var T = Object.assign({
     prev: 'Previous page', next: 'Next page', first: 'First page', last: 'Last page',
     zoomIn: 'Zoom in', zoomOut: 'Zoom out', fullscreen: 'Full screen', exitFullscreen: 'Exit full screen',
-    download: 'Download PDF', thumbnails: 'Pages', page: 'Page', of: 'of', loading: 'Loading…',
+    download: 'Download PDF', print: 'Print', preparingPrint: 'Preparing to print…', thumbnails: 'Pages', page: 'Page', of: 'of', loading: 'Loading…',
     error: 'The document could not be loaded.', openPdf: 'Open the PDF', goToPage: 'Go to page'
   }, CFG.i18n || {});
 
@@ -28,6 +28,7 @@
     fullscreen: '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>',
     exitFullscreen: '<path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/>',
     download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+    print: '<path d="M7 9V4h10v5M7 17H4.5v-7.5h15V17H17"/><rect x="7" y="14" width="10" height="6"/>',
     thumbnails: '<rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/>'
   };
 
@@ -127,6 +128,11 @@
     this.zoomInBtn = button('', 'zoomIn', T.zoomIn);
     this.fsBtn = button('', 'fullscreen', T.fullscreen);
     groupR.append(this.zoomOutBtn, this.zoomInBtn, this.fsBtn);
+    if (o.print !== false) {
+      this.printBtn = button('', 'print', T.print);
+      this.printBtn.addEventListener('click', function () { self.print(); });
+      groupR.append(this.printBtn);
+    }
     if (o.download !== false) {
       var dl = h('a', 'pdfflip__btn', { href: o.src, download: '', target: '_blank', rel: 'noopener', title: T.download, 'aria-label': T.download });
       dl.innerHTML = icon('download');
@@ -730,6 +736,107 @@
     this.thumbBtn.classList.toggle('pdfflip__btn--active', on);
     this.thumbBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     if (on) this.updateUi();
+  };
+
+  /* ---------------- print ---------------- */
+
+  var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // Prints only the PDF: every page is rendered to an image inside a hidden iframe, which is then printed.
+  Flipbook.prototype.print = function () {
+    var self = this, pdf = this.pdf;
+    if (!pdf || this.printing) return;
+
+    // iOS Safari cannot print a single iframe; its own PDF viewer prints the document instead.
+    if (isIOS) {
+      window.open(this.opts.src, '_blank', 'noopener');
+      return;
+    }
+
+    this.printing = true;
+    this.printBtn.disabled = true;
+    var status = this.loader.querySelector('.pdfflip__progress');
+    var progress = function (n) {
+      if (status) status.textContent = T.preparingPrint + ' ' + n + ' / ' + pdf.numPages;
+    };
+    this.loader.hidden = false;
+    this.root.classList.add('pdfflip--printing');
+    progress(0);
+
+    var DPI = 180, urls = [], first = null;
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d', { alpha: false });
+
+    var renderPage = function (n) {
+      return pdf.getPage(n).then(function (page) {
+        var vp1 = page.getViewport({ scale: 1 });
+        if (!first) first = vp1;
+        var scale = DPI / 72;
+        if (vp1.width * vp1.height * scale * scale > MAX_CANVAS_PX) scale = Math.sqrt(MAX_CANVAS_PX / (vp1.width * vp1.height));
+        var vp = page.getViewport({ scale: scale });
+        canvas.width = Math.floor(vp.width);
+        canvas.height = Math.floor(vp.height);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        return page.render({ canvas: canvas, canvasContext: ctx, viewport: vp, intent: 'print', annotationMode: self.lib.AnnotationMode.ENABLE_STORAGE }).promise;
+      }).then(function () {
+        return new Promise(function (resolve) { canvas.toBlob(resolve, 'image/jpeg', 0.92); });
+      }).then(function (blob) {
+        urls.push(URL.createObjectURL(blob));
+        progress(n);
+      });
+    };
+
+    var chain = Promise.resolve();
+    for (var i = 1; i <= pdf.numPages; i++) chain = chain.then(renderPage.bind(null, i));
+
+    var cleanup = function (frame) {
+      setTimeout(function () {
+        if (frame) frame.remove();
+        urls.forEach(function (u) { URL.revokeObjectURL(u); });
+      }, 1000);
+    };
+    var finish = function () {
+      self.printing = false;
+      self.printBtn.disabled = false;
+      self.loader.hidden = true;
+      self.root.classList.remove('pdfflip--printing');
+      if (status) status.textContent = '';
+    };
+
+    chain.then(function () {
+      var frame = document.createElement('iframe');
+      frame.setAttribute('aria-hidden', 'true');
+      frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+      document.body.append(frame);
+      var doc = frame.contentDocument;
+      var landscape = first && first.width > first.height;
+      doc.open();
+      doc.write('<!doctype html><html><head><meta charset="utf-8"><title>' + (self.opts.title || '').replace(/</g, '&lt;') + '</title><style>'
+        + '@page{size:' + (first ? first.width + 'pt ' + first.height + 'pt' : (landscape ? 'landscape' : 'auto')) + ';margin:0}'
+        + 'html,body{margin:0;padding:0;background:#fff}'
+        + 'img{display:block;width:100%;height:100vh;object-fit:contain;break-after:page;page-break-after:always}'
+        + 'img:last-child{break-after:auto;page-break-after:auto}'
+        + '</style></head><body>' + urls.map(function (u) { return '<img src="' + u + '" alt="">'; }).join('') + '</body></html>');
+      doc.close();
+      var imgs = Array.prototype.slice.call(doc.images);
+      return Promise.all(imgs.map(function (img) {
+        return img.decode ? img.decode().catch(function () {}) : Promise.resolve();
+      })).then(function () {
+        finish();
+        var win = frame.contentWindow;
+        win.addEventListener('afterprint', function () { cleanup(frame); });
+        win.focus();
+        win.print();
+        // Fallback cleanup for browsers that do not fire afterprint.
+        setTimeout(function () { cleanup(frame); }, 120000);
+      });
+    }).catch(function (err) {
+      if (window.console) console.error('[PDF Flipbook] print', err);
+      finish();
+      cleanup(null);
+      window.open(self.opts.src, '_blank', 'noopener');
+    });
   };
 
   /* ---------------- fullscreen ---------------- */
