@@ -1,0 +1,135 @@
+{
+    "name": "pdf_flipbook",
+    "title": "PDF Flipbook",
+    "group": "media",
+    "icon": "${url:images/icon.svg}",
+    "iconSmall": "${url:images/iconSmall.svg}",
+    "element": true,
+    "width": 500,
+    "defaults": {
+        "layout": "",
+        "cover": true,
+        "start_page": 1,
+        "show_download": true,
+        "show_thumbnails": true
+    },
+    "placeholder": {
+        "props": {
+            "title": "PDF Flipbook"
+        }
+    },
+    "templates": {
+        "render": "./templates/template.php",
+        "content": "./templates/content.php"
+    },
+    "fields": {
+        "pdf": {
+            "label": "PDF",
+            "description": "Select a PDF from the Media Manager or enter a URL. The PDF must be on this website, or on a server that allows cross-origin requests (CORS).",
+            "type": "link",
+            "filePicker": true,
+            "attrs": {
+                "placeholder": "images/catalog.pdf"
+            },
+            "source": true
+        },
+        "title": {
+            "label": "Title",
+            "description": "Shown in the top bar of the viewer. Leave empty to hide it.",
+            "source": true
+        },
+        "viewer_height": {
+            "label": "Height",
+            "description": "Height of the viewer, e.g. 80vh, 700px. Leave empty to use the plugin default.",
+            "attrs": {
+                "placeholder": "80vh"
+            }
+        },
+        "layout": {
+            "label": "Pages",
+            "description": "Automatic shows two-page spreads on large screens and single pages on phones.",
+            "type": "select",
+            "options": {
+                "Plugin default": "",
+                "Automatic": "auto",
+                "Two-page spread": "double",
+                "Single page": "single"
+            }
+        },
+        "cover": {
+            "label": "Cover",
+            "type": "checkbox",
+            "text": "Show the first page alone, like a book cover"
+        },
+        "start_page": {
+            "label": "Start page",
+            "type": "number",
+            "attrs": {
+                "min": 1
+            }
+        },
+        "show_thumbnails": {
+            "label": "Toolbar",
+            "type": "checkbox",
+            "text": "Show page thumbnails button"
+        },
+        "show_download": {
+            "type": "checkbox",
+            "text": "Show download button"
+        },
+        "background": {
+            "label": "Background",
+            "description": "Leave empty to use the plugin default.",
+            "type": "color"
+        },
+        "accent": {
+            "label": "Controls colour",
+            "description": "Colour of arrows and toolbar icons. Leave empty to use the plugin default.",
+            "type": "color"
+        },
+        "name": "${builder.name}",
+        "status": "${builder.status}",
+        "source": "${builder.source}",
+        "id": "${builder.id}",
+        "class": "${builder.cls}",
+        "attributes": "${builder.attrs}",
+        "css": {
+            "label": "CSS",
+            "description": "Enter your own custom CSS. The following selectors will be prefixed automatically for this element: <code>.el-element</code>",
+            "type": "editor",
+            "editor": "code",
+            "mode": "css",
+            "attrs": {
+                "debounce": 500
+            }
+        }
+    },
+    "fieldset": {
+        "default": {
+            "type": "tabs",
+            "fields": [
+                {
+                    "title": "Content",
+                    "fields": ["pdf", "title"]
+                },
+                {
+                    "title": "Settings",
+                    "fields": [
+                        "viewer_height",
+                        "layout",
+                        "cover",
+                        "start_page",
+                        "show_thumbnails",
+                        "show_download",
+                        "background",
+                        "accent"
+                    ]
+                },
+                {
+                    "title": "Advanced",
+                    "fields": ["name", "status", "source", "id", "class", "attributes", "css"]
+                }
+            ]
+        }
+    }
+}

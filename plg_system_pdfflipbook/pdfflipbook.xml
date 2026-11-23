@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="plugin" group="system" method="upgrade">
+    <name>plg_system_pdfflipbook</name>
+    <author>dhub-sys</author>
+    <creationDate>2026-11</creationDate>
+    <copyright>(C) 2026</copyright>
+    <license>GNU General Public License version 2 or later</license>
+    <version>1.0.0</version>
+    <description>PLG_SYSTEM_PDFFLIPBOOK_XML_DESCRIPTION</description>
+    <namespace path="src">Dhub\Plugin\System\PdfFlipbook</namespace>
+
+    <files>
+        <folder plugin="pdfflipbook">services</folder>
+        <folder>src</folder>
+        <folder>yootheme</folder>
+        <folder>language</folder>
+    </files>
+
+    <media destination="plg_system_pdfflipbook" folder="media">
+        <folder>css</folder>
+        <folder>js</folder>
+        <folder>vendor</folder>
+    </media>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field name="height" type="text" default="80vh"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_HEIGHT_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_HEIGHT_DESC"/>
+                <field name="mode" type="list" default="auto"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_MODE_LABEL">
+                    <option value="auto">PLG_SYSTEM_PDFFLIPBOOK_MODE_AUTO</option>
+                    <option value="double">PLG_SYSTEM_PDFFLIPBOOK_MODE_DOUBLE</option>
+                    <option value="single">PLG_SYSTEM_PDFFLIPBOOK_MODE_SINGLE</option>
+                </field>
+                <field name="cover" type="radio" default="1" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_COVER_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_COVER_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="download" type="radio" default="1" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_DOWNLOAD_LABEL">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="background" type="color" default="#2b2b2b"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_BACKGROUND_LABEL"/>
+                <field name="accent" type="color" default="#ffffff"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_ACCENT_LABEL"/>
+                <field name="always_load" type="radio" default="0" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_ALWAYS_LOAD_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_ALWAYS_LOAD_DESC">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+        </fields>
+    </config>
+</extension>

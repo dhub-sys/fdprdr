@@ -1,0 +1,221 @@
+/* PDF Flipbook viewer */
+.pdfflip {
+  --pdfflip-bar: 52px;
+  --pdfflip-thumbs: 136px;
+  --pdfflip-top: 0px;
+  position: relative;
+  box-sizing: border-box;
+  height: var(--pdfflip-height, 80vh);
+  min-height: 360px;
+  overflow: hidden;
+  background: var(--pdfflip-bg, #2b2b2b);
+  color: var(--pdfflip-accent, #fff);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.pdfflip *, .pdfflip *::before, .pdfflip *::after { box-sizing: border-box; }
+.pdfflip:focus-visible { box-shadow: inset 0 0 0 2px var(--pdfflip-accent, #fff); }
+.pdfflip--fs:focus-visible { box-shadow: none; }
+
+.pdfflip__fallback {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: inherit !important; text-decoration: underline;
+}
+
+/* stage & book */
+.pdfflip__stage {
+  position: absolute; left: 0; right: 0; top: var(--pdfflip-top); bottom: var(--pdfflip-bar);
+  display: flex; overflow: hidden; transition: bottom .3s ease;
+  touch-action: pan-y pinch-zoom;
+}
+.pdfflip--has-title { --pdfflip-top: 44px; }
+.pdfflip--thumbs .pdfflip__stage { bottom: calc(var(--pdfflip-bar) + var(--pdfflip-thumbs)); }
+.pdfflip--zoomed .pdfflip__stage { overflow: auto; cursor: grab; touch-action: auto; }
+.pdfflip__stage--drag { cursor: grabbing !important; }
+
+.pdfflip__book {
+  position: relative; flex: none; margin: auto;
+  perspective: 3200px;
+  transition: none;
+}
+.pdfflip__slot { position: absolute; top: 0; bottom: 0; }
+.pdfflip--double .pdfflip__slot--left { left: 0; width: 50%; }
+.pdfflip--double .pdfflip__slot--right { left: 50%; width: 50%; }
+.pdfflip--single .pdfflip__slot--left { left: 0; width: 100%; }
+.pdfflip--single .pdfflip__slot--right { display: none; }
+.pdfflip__slot:not(.pdfflip__slot--empty) { background: #fff; box-shadow: 0 10px 34px rgba(0, 0, 0, .38); }
+.pdfflip:not(.pdfflip--zoomed) .pdfflip__slot { cursor: pointer; }
+
+.pdfflip__page { position: absolute; inset: 0; background: #fff; overflow: hidden; }
+.pdfflip__page canvas { display: block; width: 100%; height: 100%; }
+
+/* soft shading along the spine */
+.pdfflip--double .pdfflip__page::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 9%; pointer-events: none; z-index: 1;
+}
+.pdfflip--double .pdfflip__slot--left .pdfflip__page::after,
+.pdfflip--double .pdfflip__face--back .pdfflip__page::after,
+.pdfflip--double .pdfflip__leaf--prev .pdfflip__face--front .pdfflip__page::after {
+  right: 0; background: linear-gradient(to left, rgba(0, 0, 0, .16), rgba(0, 0, 0, 0));
+}
+.pdfflip--double .pdfflip__slot--right .pdfflip__page::after,
+.pdfflip--double .pdfflip__leaf--next .pdfflip__face--front .pdfflip__page::after,
+.pdfflip--double .pdfflip__leaf--prev .pdfflip__face--back .pdfflip__page::after {
+  left: 0; right: auto; background: linear-gradient(to right, rgba(0, 0, 0, .16), rgba(0, 0, 0, 0));
+}
+/* no spine shadow on a lone cover / back page */
+.pdfflip__slot--left.pdfflip__slot--empty + .pdfflip__slot--right .pdfflip__page::after,
+.pdfflip__book:has(.pdfflip__slot--right.pdfflip__slot--empty) .pdfflip__slot--left .pdfflip__page::after { display: none; }
+
+.pdfflip__link { position: absolute; z-index: 2; cursor: pointer; border-radius: 2px; }
+.pdfflip__link:hover { background: rgba(255, 210, 0, .18); }
+
+/* turning leaf */
+.pdfflip__leaf {
+  position: absolute; top: 0; height: 100%; width: 50%; z-index: 5;
+  transform-style: preserve-3d; will-change: transform;
+}
+.pdfflip__leaf--next { left: 50%; transform-origin: left center; }
+.pdfflip__leaf--prev { left: 0; transform-origin: right center; }
+.pdfflip__face {
+  position: absolute; inset: 0; background: #fff;
+  -webkit-backface-visibility: hidden; backface-visibility: hidden;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .3);
+}
+.pdfflip__face--blank { background: transparent; box-shadow: none; }
+.pdfflip__face--back { transform: rotateY(180deg); }
+.pdfflip__face::before {
+  content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0;
+  animation: var(--pdfflip-flip, .75s) ease-in-out forwards;
+}
+.pdfflip__leaf--next .pdfflip__face--front::before { background: linear-gradient(to right, rgba(0,0,0,.45), rgba(0,0,0,.05) 70%); animation-name: pdfflip-shade-in; }
+.pdfflip__leaf--next .pdfflip__face--back::before { background: linear-gradient(to left, rgba(0,0,0,.45), rgba(0,0,0,.05) 70%); animation-name: pdfflip-shade-out; }
+.pdfflip__leaf--prev .pdfflip__face--front::before { background: linear-gradient(to left, rgba(0,0,0,.45), rgba(0,0,0,.05) 70%); animation-name: pdfflip-shade-in; }
+.pdfflip__leaf--prev .pdfflip__face--back::before { background: linear-gradient(to right, rgba(0,0,0,.45), rgba(0,0,0,.05) 70%); animation-name: pdfflip-shade-out; }
+.pdfflip__face--blank::before { display: none; }
+@keyframes pdfflip-shade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes pdfflip-shade-out { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+/* title */
+.pdfflip__top {
+  position: absolute; top: 0; left: 0; right: 0; height: var(--pdfflip-top);
+  display: flex; align-items: center; padding: 0 16px; pointer-events: none;
+}
+.pdfflip__title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .9; }
+
+/* buttons */
+.pdfflip__btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; margin: 0; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: inherit !important; cursor: pointer;
+  opacity: .85; transition: opacity .2s, background-color .2s;
+  font: inherit; line-height: 1; text-decoration: none !important;
+}
+.pdfflip__btn:hover, .pdfflip__btn:focus-visible { opacity: 1; background: rgba(255, 255, 255, .12); background: color-mix(in srgb, currentColor 14%, transparent); outline: none; }
+.pdfflip__btn--active { background: rgba(255, 255, 255, .18); background: color-mix(in srgb, currentColor 20%, transparent); opacity: 1; }
+.pdfflip__btn[disabled] { opacity: .3; cursor: default; background: transparent; }
+.pdfflip__btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.pdfflip__nav {
+  position: absolute; z-index: 6; top: calc(var(--pdfflip-top) + (100% - var(--pdfflip-top) - var(--pdfflip-bar)) / 2);
+  width: 52px; height: 52px; margin-top: -26px; background: rgba(0, 0, 0, .32);
+  background: color-mix(in srgb, var(--pdfflip-bg, #2b2b2b) 65%, rgba(0, 0, 0, .5));
+}
+.pdfflip--thumbs .pdfflip__nav { top: calc(var(--pdfflip-top) + (100% - var(--pdfflip-top) - var(--pdfflip-bar) - var(--pdfflip-thumbs)) / 2); }
+.pdfflip__nav:hover, .pdfflip__nav:focus-visible { background: rgba(0, 0, 0, .55); background: color-mix(in srgb, var(--pdfflip-bg, #2b2b2b) 55%, rgba(0, 0, 0, .75)); }
+.pdfflip__nav svg { width: 28px; height: 28px; stroke-width: 2.2; }
+.pdfflip__nav--prev { left: 10px; }
+.pdfflip__nav--next { right: 10px; }
+.pdfflip__nav[disabled] { opacity: 0; pointer-events: none; }
+
+/* toolbar */
+.pdfflip__bar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: var(--pdfflip-bar); z-index: 7;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 8px;
+  background: rgba(0, 0, 0, .28);
+  background: color-mix(in srgb, var(--pdfflip-bg, #2b2b2b) 86%, #000);
+}
+.pdfflip__group { display: flex; align-items: center; gap: 2px; min-width: 40px; }
+.pdfflip__group:last-child { justify-content: flex-end; }
+.pdfflip__pager { display: inline-flex; align-items: center; margin: 0 6px; white-space: nowrap; cursor: text; }
+.pdfflip__input {
+  width: auto; min-width: 3ch; height: 30px; margin: 0; padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, .28); border-color: color-mix(in srgb, currentColor 30%, transparent); border-radius: 4px; background: transparent;
+  color: inherit; font: inherit; font-variant-numeric: tabular-nums; text-align: center; box-shadow: none;
+}
+.pdfflip__input:focus { outline: none; border-color: currentColor; background: color-mix(in srgb, currentColor 8%, transparent); }
+.pdfflip__total { margin-left: 6px; opacity: .8; font-variant-numeric: tabular-nums; }
+
+/* thumbnails */
+.pdfflip__thumbs {
+  position: absolute; left: 0; right: 0; bottom: var(--pdfflip-bar); height: var(--pdfflip-thumbs); z-index: 6;
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain;
+  background: rgba(0, 0, 0, .35);
+  background: color-mix(in srgb, var(--pdfflip-bg, #2b2b2b) 92%, #000);
+  transform: translateY(calc(100% + var(--pdfflip-bar))); visibility: hidden;
+  transition: transform .3s ease, visibility 0s .3s;
+  scrollbar-width: thin;
+}
+.pdfflip--thumbs .pdfflip__thumbs { transform: none; visibility: visible; transition: transform .3s ease; }
+.pdfflip__thumb {
+  flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  margin: 0; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; font: inherit;
+}
+.pdfflip__thumb--l { margin-right: -12px; }
+.pdfflip__thumb-img {
+  display: block; height: 96px; min-width: 60px; background: rgba(255, 255, 255, .85);
+  outline: 2px solid transparent; outline-offset: 2px; transition: outline-color .2s;
+}
+.pdfflip__thumb-img canvas { display: block; height: 96px; width: auto; }
+.pdfflip__thumb-num { font-size: 12px; opacity: .75; }
+.pdfflip__thumb:hover .pdfflip__thumb-img { outline-color: color-mix(in srgb, currentColor 45%, transparent); }
+.pdfflip__thumb--active .pdfflip__thumb-img { outline-color: var(--pdfflip-accent, #fff); }
+.pdfflip__thumb--active .pdfflip__thumb-num { opacity: 1; font-weight: 600; }
+
+/* loading & errors */
+.pdfflip__loader {
+  position: absolute; inset: 0 0 var(--pdfflip-bar); z-index: 8;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 16px;
+}
+.pdfflip__loader[hidden] { display: none; }
+.pdfflip__loader a { color: inherit !important; text-decoration: underline; }
+.pdfflip__spinner {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, .2); border-color: color-mix(in srgb, currentColor 20%, transparent); border-top-color: var(--pdfflip-accent, #fff);
+  animation: pdfflip-spin .9s linear infinite;
+}
+.pdfflip__progress { font-size: 13px; opacity: .8; }
+@keyframes pdfflip-spin { to { transform: rotate(360deg); } }
+.pdfflip--error .pdfflip__bar, .pdfflip--error .pdfflip__nav { display: none; }
+.pdfflip--error .pdfflip__loader { inset: 0; }
+
+.pdfflip__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* full screen */
+.pdfflip:fullscreen { width: 100%; height: 100%; }
+.pdfflip:-webkit-full-screen { width: 100%; height: 100%; }
+.pdfflip--fs-fallback {
+  position: fixed !important; inset: 0; z-index: 2147483000; width: 100% !important; height: 100% !important; margin: 0 !important;
+}
+html.pdfflip-lock, html.pdfflip-lock body { overflow: hidden !important; }
+
+/* small screens */
+@media (max-width: 639px) {
+  .pdfflip { --pdfflip-bar: 48px; --pdfflip-thumbs: 120px; }
+  .pdfflip__nav { width: 40px; height: 40px; margin-top: -20px; background: rgba(0, 0, 0, .22); }
+  .pdfflip__nav svg { width: 22px; height: 22px; }
+  .pdfflip__nav--prev { left: 4px; }
+  .pdfflip__nav--next { right: 4px; }
+  .pdfflip__group--pager .pdfflip__btn { display: none; }
+  .pdfflip__bar { padding: 0 4px; }
+  .pdfflip__btn { width: 36px; height: 36px; }
+  .pdfflip__thumb-img, .pdfflip__thumb-img canvas { height: 80px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdfflip__stage, .pdfflip__thumbs { transition: none; }
+}
