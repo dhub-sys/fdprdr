@@ -99,14 +99,6 @@
     this.loader = h('div', 'pdfflip__loader');
     this.loader.innerHTML = '<span class="pdfflip__spinner"></span><span class="pdfflip__progress">' + T.loading + '</span>';
 
-    var top = h('div', 'pdfflip__top');
-    if (o.title) {
-      var title = h('div', 'pdfflip__title');
-      title.textContent = o.title;
-      top.append(title);
-      r.classList.add('pdfflip--has-title');
-    }
-
     var bar = h('div', 'pdfflip__bar');
     var groupL = h('div', 'pdfflip__group');
     var groupC = h('div', 'pdfflip__group pdfflip__group--pager');
@@ -114,6 +106,12 @@
 
     this.thumbBtn = button('', 'thumbnails', T.thumbnails);
     if (o.thumbs !== false) groupL.append(this.thumbBtn);
+    // The title sits in the toolbar, so the page can use the full height above it.
+    if (o.title) {
+      var title = h('div', 'pdfflip__title', { title: o.title });
+      title.textContent = o.title;
+      groupL.append(title);
+    }
 
     this.firstBtn = button('', 'first', T.first);
     this.prevSmall = button('', 'prev', T.prev);
@@ -139,7 +137,7 @@
     this.thumbs = h('div', 'pdfflip__thumbs', { 'aria-label': T.thumbnails });
     this.live = h('div', 'pdfflip__sr', { 'aria-live': 'polite' });
 
-    r.append(this.stage, top, this.prevBtn, this.nextBtn, this.thumbs, bar, this.loader, this.live);
+    r.append(this.stage, this.prevBtn, this.nextBtn, this.thumbs, bar, this.loader, this.live);
 
     this.prevBtn.addEventListener('click', function () { self.prev(); });
     this.nextBtn.addEventListener('click', function () { self.next(); });
@@ -256,7 +254,7 @@
     }
 
     var narrow = this.stage.clientWidth < 640;
-    var padX = narrow ? 12 : 72, padY = narrow ? 12 : 24;
+    var padX = narrow ? 8 : 72, padY = narrow ? 8 : 14;
     var availW = Math.max(100, this.stage.clientWidth - padX * 2);
     var availH = Math.max(100, this.stage.clientHeight - padY * 2);
     var cols = dbl ? 2 : 1;

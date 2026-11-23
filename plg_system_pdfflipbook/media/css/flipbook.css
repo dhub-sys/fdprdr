@@ -37,7 +37,6 @@
   display: flex; overflow: hidden; transition: bottom .3s ease;
   touch-action: pan-y pinch-zoom;
 }
-.pdfflip--has-title { --pdfflip-top: 44px; }
 .pdfflip--thumbs .pdfflip__stage { bottom: calc(var(--pdfflip-bar) + var(--pdfflip-thumbs)); }
 .pdfflip--zoomed .pdfflip__stage { overflow: auto; cursor: grab; touch-action: auto; }
 .pdfflip__stage--drag { cursor: grabbing !important; }
@@ -106,11 +105,7 @@
 @keyframes pdfflip-shade-out { 0% { opacity: 1; } 100% { opacity: 0; } }
 
 /* title */
-.pdfflip__top {
-  position: absolute; top: 0; left: 0; right: 0; height: var(--pdfflip-top);
-  display: flex; align-items: center; padding: 0 16px; pointer-events: none;
-}
-.pdfflip__title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .9; }
+.pdfflip__title { min-width: 0; margin-left: 8px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .9; }
 
 /* buttons */
 .pdfflip__btn {
@@ -140,7 +135,7 @@
 /* toolbar */
 .pdfflip__bar {
   position: absolute; left: 0; right: 0; bottom: 0; height: var(--pdfflip-bar); z-index: 7;
-  display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 8px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 0 8px;
   background: rgba(0, 0, 0, .28);
   background: color-mix(in srgb, var(--pdfflip-bg, #2b2b2b) 86%, #000);
 }
@@ -217,7 +212,8 @@ html.pdfflip-lock, html.pdfflip-lock body { overflow: hidden !important; }
   .pdfflip__nav--prev { left: 4px; }
   .pdfflip__nav--next { right: 4px; }
   .pdfflip__group--pager .pdfflip__btn { display: none; }
-  .pdfflip__bar { padding: 0 4px; }
+  .pdfflip__bar { padding: 0 4px; gap: 4px; }
+  .pdfflip__title { display: none; }
   .pdfflip__btn { width: 36px; height: 36px; }
   .pdfflip__thumb-img, .pdfflip__thumb-img canvas { height: 80px; }
 }

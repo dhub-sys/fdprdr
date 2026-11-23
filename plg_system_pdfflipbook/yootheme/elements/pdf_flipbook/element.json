@@ -14,11 +14,6 @@
         "show_download": true,
         "show_thumbnails": true
     },
-    "placeholder": {
-        "props": {
-            "title": "PDF Flipbook"
-        }
-    },
     "templates": {
         "render": "./templates/template.php",
         "content": "./templates/content.php"
