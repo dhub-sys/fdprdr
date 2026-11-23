@@ -5,7 +5,7 @@
     <creationDate>2026-11</creationDate>
     <copyright>(C) 2026</copyright>
     <license>GNU General Public License version 2 or later</license>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
     <description>PLG_SYSTEM_PDFFLIPBOOK_XML_DESCRIPTION</description>
     <namespace path="src">Dhub\Plugin\System\PdfFlipbook</namespace>
 
@@ -41,6 +41,18 @@
                     <option value="slide">PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_SLIDE</option>
                     <option value="fade">PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_FADE</option>
                     <option value="none">PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_NONE</option>
+                </field>
+                <field name="transition_min" type="number" default="0" min="0" step="1"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_MIN_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_MIN_DESC"/>
+                <field name="transition_short" type="list" default="none"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_SHORT_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_SHORT_DESC"
+                       showon="transition_min!:0[AND]transition_min!:1[AND]transition_min!:">
+                    <option value="none">PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_NONE</option>
+                    <option value="fade">PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_FADE</option>
+                    <option value="slide">PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_SLIDE</option>
+                    <option value="flip">PLG_SYSTEM_PDFFLIPBOOK_TRANSITION_FLIP</option>
                 </field>
                 <field name="cover" type="radio" default="1" layout="joomla.form.field.radio.switcher"
                        label="PLG_SYSTEM_PDFFLIPBOOK_COVER_LABEL"
@@ -84,6 +96,13 @@
                     <option value="top">PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLOSE_TOP</option>
                     <option value="bar">PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLOSE_BAR</option>
                     <option value="both">PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLOSE_BOTH</option>
+                </field>
+                <field name="modal_close_color" type="list" default="light"
+                       label="PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLOSE_COLOR_LABEL"
+                       description="PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLOSE_COLOR_DESC"
+                       showon="modal_links!:off[AND]modal_close!:bar">
+                    <option value="light">PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLOSE_LIGHT</option>
+                    <option value="dark">PLG_SYSTEM_PDFFLIPBOOK_MODAL_CLOSE_DARK</option>
                 </field>
                 <field name="modal_esc_hint" type="radio" default="1" layout="joomla.form.field.radio.switcher"
                        label="PLG_SYSTEM_PDFFLIPBOOK_MODAL_ESC_LABEL"

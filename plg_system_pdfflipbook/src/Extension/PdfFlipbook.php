@@ -114,6 +114,8 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
             'print'    => $bool($options['print'] ?? null, $defaults->get('print', 1)),
             'thumbs'   => $bool($options['thumbs'] ?? null, 1),
             'transition' => self::transition((string) ($options['transition'] ?? ''), (string) $defaults->get('transition', 'flip')),
+            'transitionMin'   => max(0, (int) (($options['transition_min'] ?? '') !== '' ? $options['transition_min'] : $defaults->get('transition_min', 0))),
+            'transitionShort' => self::transition((string) ($options['transition_short'] ?? ''), (string) $defaults->get('transition_short', 'none')),
         ];
 
         $height = self::cssLength((string) ($options['height'] ?? ''), (string) $defaults->get('height', 'screen'));
@@ -206,6 +208,7 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
             'modal'  => (string) $this->params->get('modal_links', 'all'),
             'modalOptions' => [
                 'close'         => \in_array($this->params->get('modal_close', 'top'), ['top', 'bar', 'both'], true) ? $this->params->get('modal_close', 'top') : 'top',
+                'closeColor'    => $this->params->get('modal_close_color', 'light') === 'dark' ? 'dark' : 'light',
                 'escHint'       => (bool) $this->params->get('modal_esc_hint', 1),
                 'backdropClose' => (bool) $this->params->get('modal_backdrop_close', 0),
                 'color'         => self::cssColor('', (string) $this->params->get('modal_color', '#111111')),
@@ -215,6 +218,8 @@ final class PdfFlipbook extends CMSPlugin implements SubscriberInterface
             'defaults' => [
                 'mode'       => (string) $this->params->get('mode', 'auto'),
                 'transition' => self::transition('', (string) $this->params->get('transition', 'flip')),
+                'transitionMin'   => max(0, (int) $this->params->get('transition_min', 0)),
+                'transitionShort' => self::transition('', (string) $this->params->get('transition_short', 'none')),
                 'cover'      => (bool) $this->params->get('cover', 1),
                 'download'   => (bool) $this->params->get('download', 1),
                 'print'      => (bool) $this->params->get('print', 1),

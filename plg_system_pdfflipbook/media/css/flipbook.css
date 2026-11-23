@@ -35,10 +35,11 @@
 .pdfflip__stage {
   position: absolute; left: 0; right: 0; top: var(--pdfflip-top); bottom: var(--pdfflip-bar);
   display: flex; overflow: hidden; transition: bottom .3s ease;
-  touch-action: pan-y pinch-zoom;
+  touch-action: pan-y; /* vertical scrolling of the web page; swipes and pinch are handled by the viewer */
 }
 .pdfflip--thumbs .pdfflip__stage { bottom: calc(var(--pdfflip-bar) + var(--pdfflip-thumbs)); }
-.pdfflip--zoomed .pdfflip__stage { overflow: auto; cursor: grab; touch-action: auto; }
+.pdfflip--zoomed .pdfflip__stage { overflow: auto; cursor: grab; touch-action: none; overscroll-behavior: contain; }
+.pdfflip--modal .pdfflip__stage { touch-action: none; }
 .pdfflip__stage--drag { cursor: grabbing !important; }
 
 .pdfflip__book {
@@ -211,35 +212,32 @@
 .pdfflip-overlay--open { opacity: 1; }
 .pdfflip--modal { height: 100% !important; min-height: 0; background: transparent; }
 
-/* large close button, top right */
+/* large close button, top right: no background, light or dark */
 .pdfflip__close-top {
-  position: absolute; top: 16px; right: 16px; z-index: 9;
-  display: inline-flex; align-items: center; gap: 10px; height: 52px; margin: 0; padding: 0;
-  border: 0; border-radius: 999px; background: #fff; color: #111;
+  --pdfflip-close: #fff;
+  position: absolute; top: 14px; right: 14px; z-index: 9;
+  display: inline-flex; align-items: center; gap: 10px; height: 52px; margin: 0; padding: 0 0 0 12px;
+  border: 0; border-radius: 8px; background: transparent; color: var(--pdfflip-close);
   font: 600 15px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, .35); cursor: pointer;
-  transition: transform .15s ease, box-shadow .15s ease;
+  cursor: pointer; opacity: .9; transition: opacity .15s ease, transform .15s ease;
 }
-.pdfflip__close-top--hint { padding-left: 20px; }
-.pdfflip__close-top:hover { transform: scale(1.05); box-shadow: 0 8px 30px rgba(0, 0, 0, .45); }
-.pdfflip__close-top:focus-visible { outline: 3px solid var(--pdfflip-accent, #fff); outline-offset: 3px; }
-.pdfflip__close-icon {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 52px; height: 52px; border-radius: 50%;
-}
-.pdfflip__close-top--hint .pdfflip__close-icon { width: 40px; height: 40px; margin-right: 6px; background: #111; color: #fff; }
-.pdfflip__close-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
-.pdfflip__close-top--hint .pdfflip__close-icon svg { width: 20px; height: 20px; }
+.pdfflip__close-top--light { text-shadow: 0 1px 4px rgba(0, 0, 0, .45); }
+.pdfflip__close-top--light svg { filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .45)); }
+.pdfflip__close-top--dark { --pdfflip-close: #111; text-shadow: 0 1px 4px rgba(255, 255, 255, .6); }
+.pdfflip__close-top--dark svg { filter: drop-shadow(0 1px 3px rgba(255, 255, 255, .6)); }
+.pdfflip__close-top:hover { opacity: 1; transform: scale(1.06); }
+.pdfflip__close-top:focus-visible { outline: 2px solid var(--pdfflip-close); outline-offset: 2px; opacity: 1; }
+.pdfflip__close-icon { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; }
+.pdfflip__close-icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
 .pdfflip__close-kbd {
-  padding: 3px 7px; border: 1px solid rgba(0, 0, 0, .25); border-bottom-width: 2px; border-radius: 5px;
-  background: #f3f3f3; color: #333; font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 3px 7px; border: 1.5px solid currentColor; border-radius: 5px; background: transparent; color: inherit;
+  font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .85;
 }
 @media (max-width: 639px), (pointer: coarse) {
   .pdfflip__close-label, .pdfflip__close-kbd { display: none; }
-  .pdfflip__close-top--hint { padding-left: 0; }
-  .pdfflip__close-top--hint .pdfflip__close-icon { width: 44px; height: 44px; margin: 0; background: none; color: #111; }
-  .pdfflip__close-top { top: 10px; right: 10px; height: 44px; }
-  .pdfflip__close-icon { width: 44px; height: 44px; }
+  .pdfflip__close-top { top: 8px; right: 8px; height: 48px; padding: 0; }
+  .pdfflip__close-icon { width: 48px; height: 48px; }
+  .pdfflip__close-icon svg { width: 30px; height: 30px; }
 }
 /* keep the page below the close button on narrow screens */
 @media (max-width: 639px), (max-aspect-ratio: 4/5) {

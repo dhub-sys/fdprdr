@@ -73,6 +73,14 @@
                 "None": "none"
             }
         },
+        "transition_min": {
+            "label": "Effect from (pages)",
+            "description": "The page change effect is used only for PDFs with at least this many pages. Leave empty to use the plugin default.",
+            "type": "number",
+            "attrs": {
+                "min": 0
+            }
+        },
         "cover": {
             "label": "Cover",
             "type": "checkbox",
@@ -146,6 +154,7 @@
                         "viewer_height",
                         "layout",
                         "transition",
+                        "transition_min",
                         "cover",
                         "start_page",
                         "show_thumbnails",

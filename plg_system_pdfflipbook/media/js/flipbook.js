@@ -15,7 +15,8 @@
 
   var ZOOMS = [1, 1.5, 2, 3, 4];
   var FLIP_MS = 750;
-  var MAX_CANVAS_PX = 4096 * 4096;
+  // iOS limits canvas memory: keep zoomed pages smaller on touch devices.
+  var MAX_CANVAS_PX = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ? 3000 * 3000 : 4096 * 4096;
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var ICONS = {
@@ -151,6 +152,7 @@
       top.innerHTML = (o.escHint !== false ? '<span class="pdfflip__close-label">' + T.close + '</span><kbd class="pdfflip__close-kbd">' + T.closeEsc + '</kbd>' : '')
         + '<span class="pdfflip__close-icon">' + icon('close') + '</span>';
       if (o.escHint !== false) top.classList.add('pdfflip__close-top--hint');
+      top.classList.add(o.closeColor === 'dark' ? 'pdfflip__close-top--dark' : 'pdfflip__close-top--light');
       top.addEventListener('click', function () { if (self.onClose) self.onClose(); });
       top.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
       r.classList.add('pdfflip--close-top');
@@ -214,6 +216,8 @@
     }).then(function (pdf) {
       self.pdf = pdf;
       self.pages = pdf.numPages;
+      // Page-change effect only from a minimum number of pages; shorter PDFs use another (or no) effect.
+      if (o.transitionMin && self.pages < o.transitionMin) o.transition = o.transitionShort || 'none';
       return pdf.getPage(1);
     }).then(function (page) {
       var vp = page.getViewport({ scale: 1 });
@@ -605,34 +609,53 @@
   /* ---------------- zoom ---------------- */
 
   Flipbook.prototype.zoomStep = function (d) {
-    var i = ZOOMS.indexOf(this.zoom);
-    if (i === -1) i = 0;
-    return ZOOMS[Math.max(0, Math.min(ZOOMS.length - 1, i + d))];
+    var z = this.zoom, i;
+    if (d > 0) {
+      for (i = 0; i < ZOOMS.length; i++) if (ZOOMS[i] > z + 0.01) return ZOOMS[i];
+      return ZOOMS[ZOOMS.length - 1];
+    }
+    for (i = ZOOMS.length - 1; i >= 0; i--) if (ZOOMS[i] < z - 0.01) return ZOOMS[i];
+    return ZOOMS[0];
   };
 
-  Flipbook.prototype.setZoom = function (z, cx, cy) {
-    if (!this.pdf || z === this.zoom) return;
-    this.finishAnimation();
-    var st = this.stage;
-    // Keep the point under the cursor (or the centre) in place.
-    var rect = st.getBoundingClientRect();
-    var px = cx === undefined ? st.clientWidth / 2 : cx - rect.left;
-    var py = cy === undefined ? st.clientHeight / 2 : cy - rect.top;
-    var bookRect = this.book.getBoundingClientRect();
-    var fx = (px + rect.left - bookRect.left) / bookRect.width;
-    var fy = (py + rect.top - bookRect.top) / bookRect.height;
+  // Position (0–1) inside the book of a point given in client coordinates.
+  Flipbook.prototype.bookPoint = function (cx, cy) {
+    var b = this.book.getBoundingClientRect();
+    return { fx: (cx - b.left) / b.width, fy: (cy - b.top) / b.height };
+  };
 
+  // Zooms so that the book point (fx, fy) ends up under the client point (cx, cy).
+  Flipbook.prototype.zoomAt = function (z, fx, fy, cx, cy) {
+    var st = this.stage;
     this.zoom = z;
     this.book.style.transform = 'translateX(' + this.shiftFor(this.spreads[this.index]) + '%)';
     this.applySize();
-    var nb = this.book;
-    st.scrollLeft = nb.offsetLeft + fx * nb.offsetWidth - px;
-    st.scrollTop = nb.offsetTop + fy * nb.offsetHeight - py;
-    this.updateUi();
+    var b = this.book.getBoundingClientRect();
+    st.scrollLeft += (b.left + fx * b.width) - cx;
+    st.scrollTop += (b.top + fy * b.height) - cy;
+  };
 
+  Flipbook.prototype.setZoom = function (z, cx, cy, live) {
+    z = Math.max(ZOOMS[0], Math.min(ZOOMS[ZOOMS.length - 1], z));
+    if (!this.pdf || Math.abs(z - this.zoom) < 0.001) return;
+    this.finishAnimation();
+    var rect = this.stage.getBoundingClientRect();
+    if (cx === undefined) { cx = rect.left + rect.width / 2; cy = rect.top + rect.height / 2; }
+    var pt = this.bookPoint(cx, cy);
+    this.zoomAt(z, pt.fx, pt.fy, cx, cy);
+    this.updateUi();
+    if (!live) this.rerenderSoon();
+  };
+
+  // Sharp pages for the new zoom level once zooming has stopped.
+  Flipbook.prototype.rerenderSoon = function () {
     var self = this;
     clearTimeout(this.zoomTimer);
-    this.zoomTimer = setTimeout(function () { self.show(self.index, 0); }, 200);
+    this.zoomTimer = setTimeout(function () {
+      var width = '@' + self.renderWidth();
+      self.cache.forEach(function (v, k) { if (k.slice(k.indexOf('@')) !== width) self.cache.delete(k); });
+      self.show(self.index, 0);
+    }, 250);
   };
 
   /* ---------------- input ---------------- */
@@ -652,34 +675,97 @@
 
   Flipbook.prototype.bindPointer = function () {
     var self = this, st = this.stage, start = null, lastTap = 0;
+    var pointers = new Map(), pinch = null, afterPinch = false, inertia = 0;
+
+    var stopInertia = function () { cancelAnimationFrame(inertia); inertia = 0; };
+    var pageZoomed = function () { return window.visualViewport && window.visualViewport.scale > 1.01; };
 
     st.addEventListener('pointerdown', function (e) {
-      if (e.button !== 0) return;
-      start = { x: e.clientX, y: e.clientY, sl: st.scrollLeft, st: st.scrollTop, t: Date.now(), moved: false, id: e.pointerId };
-      if (self.zoom > 1 && e.pointerType === 'mouse') {
-        st.setPointerCapture(e.pointerId);
-        st.classList.add('pdfflip__stage--drag');
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      stopInertia();
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (e.pointerType !== 'mouse' || self.zoom > 1) {
+        try { st.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
       }
+
+      if (pointers.size === 2 && self.pdf) {
+        // Two fingers: pinch to zoom inside the viewer.
+        var pts = Array.from(pointers.values());
+        var mx = (pts[0].x + pts[1].x) / 2, my = (pts[0].y + pts[1].y) / 2;
+        var pt = self.bookPoint(mx, my);
+        pinch = { d: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1, z: self.zoom, fx: pt.fx, fy: pt.fy };
+        self.finishAnimation();
+        start = null;
+        afterPinch = true;
+        return;
+      }
+      if (pointers.size > 1) return;
+      afterPinch = false;
+      start = { x: e.clientX, y: e.clientY, sl: st.scrollLeft, st: st.scrollTop, moved: false, id: e.pointerId, type: e.pointerType, track: [{ x: e.clientX, y: e.clientY, t: performance.now() }] };
+      if (self.zoom > 1) st.classList.add('pdfflip__stage--drag');
     });
 
     st.addEventListener('pointermove', function (e) {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pinch && pointers.size >= 2) {
+        e.preventDefault();
+        var pts = Array.from(pointers.values());
+        var d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+        var mx = (pts[0].x + pts[1].x) / 2, my = (pts[0].y + pts[1].y) / 2;
+        var z = Math.max(1, Math.min(ZOOMS[ZOOMS.length - 1], pinch.z * d / pinch.d));
+        // Zoom around the fingers and follow them when they move together.
+        self.zoomAt(z, pinch.fx, pinch.fy, mx, my);
+        return;
+      }
+
       if (!start || e.pointerId !== start.id) return;
       var dx = e.clientX - start.x, dy = e.clientY - start.y;
       if (Math.abs(dx) > 6 || Math.abs(dy) > 6) start.moved = true;
-      if (self.zoom > 1 && e.pointerType === 'mouse') {
+      if (self.zoom > 1) {
+        // One finger (or the mouse) moves the zoomed page.
+        e.preventDefault();
         st.scrollLeft = start.sl - dx;
         st.scrollTop = start.st - dy;
+        start.track.push({ x: e.clientX, y: e.clientY, t: performance.now() });
+        if (start.track.length > 5) start.track.shift();
       }
     });
 
     var end = function (e) {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.delete(e.pointerId);
+      st.classList.remove('pdfflip__stage--drag');
+
+      if (pinch) {
+        if (pointers.size < 2) {
+          pinch = null;
+          if (self.zoom < 1.08) self.setZoom(1); else { self.updateUi(); self.rerenderSoon(); }
+        }
+        return;
+      }
+      if (afterPinch) { if (!pointers.size) afterPinch = false; return; }
       if (!start || e.pointerId !== start.id) return;
       var s = start;
       start = null;
-      st.classList.remove('pdfflip__stage--drag');
       var dx = e.clientX - s.x, dy = e.clientY - s.y;
 
-      if (self.zoom === 1 && e.pointerType !== 'mouse' && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+      // Flick: the zoomed page keeps gliding for a moment.
+      if (self.zoom > 1 && s.moved && s.type !== 'mouse' && e.type !== 'pointercancel') {
+        var a = s.track[0], b = s.track[s.track.length - 1], dt = Math.max(1, b.t - a.t);
+        var cap = function (v) { return Math.max(-50, Math.min(50, v)); };
+        var vx = cap((b.x - a.x) / dt * 16), vy = cap((b.y - a.y) / dt * 16);
+        var step = function () {
+          vx *= 0.94; vy *= 0.94;
+          st.scrollLeft -= vx; st.scrollTop -= vy;
+          if (Math.abs(vx) > 0.4 || Math.abs(vy) > 0.4) inertia = requestAnimationFrame(step);
+        };
+        if (performance.now() - b.t < 80) inertia = requestAnimationFrame(step);
+        return;
+      }
+
+      if (self.zoom === 1 && !pageZoomed() && s.type !== 'mouse' && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) {
         if (dx < 0) self.next(); else self.prev();
         return;
       }
@@ -690,7 +776,7 @@
       if (now - lastTap < 300) {
         lastTap = 0;
         clearTimeout(self.tapTimer);
-        self.setZoom(self.zoom > 1 ? 1 : 2, e.clientX, e.clientY);
+        self.setZoom(self.zoom > 1 ? 1 : 2.5, e.clientX, e.clientY);
         return;
       }
       lastTap = now;
@@ -715,12 +801,16 @@
     st.addEventListener('pointerup', end);
     st.addEventListener('pointercancel', end);
 
-    // Ctrl / pinch-zoom on trackpads.
+    // Ctrl + wheel and trackpad pinch.
     st.addEventListener('wheel', function (e) {
       if (!e.ctrlKey) return;
       e.preventDefault();
-      self.setZoom(self.zoomStep(e.deltaY < 0 ? 1 : -1), e.clientX, e.clientY);
+      self.setZoom(self.zoom * Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
     }, { passive: false });
+
+    // Safari's own pinch gesture events: keep them from zooming the whole web page.
+    st.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+    st.addEventListener('gesturechange', function (e) { e.preventDefault(); });
   };
 
   /* ---------------- thumbnails ---------------- */
@@ -1014,7 +1104,8 @@
     var o = Object.assign({
       mode: D.mode || 'auto', cover: D.cover !== false, start: 1, transition: D.transition || 'flip',
       download: D.download !== false, print: D.print !== false, thumbs: true,
-      close: M.close || 'top', escHint: M.escHint !== false, backdropClose: !!M.backdropClose
+      close: M.close || 'top', closeColor: M.closeColor || 'light', escHint: M.escHint !== false, backdropClose: !!M.backdropClose,
+      transitionMin: D.transitionMin || 0, transitionShort: D.transitionShort || 'none'
     }, opts, { src: src, modal: true });
 
     var overlay = h('div', 'pdfflip-overlay', { role: 'dialog', 'aria-modal': 'true' });
